@@ -4,35 +4,34 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
 )
 
-func main() {
-	// Define a new command-line flag with the name 'addr', a default value of ":4000"
-	// and some short help text explaining what the flag controls. The value of the
-	// flag will be stored in the addr variable at runtime.
-	addr := flag.String("addr", ":4000", "HTTP network address")
+type application struct {
+	errorLog *log.Logger
+	infoLog  *log.Logger
+}
 
-	// Importantly, we use the flag.Parse() function to parse the command-line flag.
-	// This reads in the command-line flag value and assigns it to the addr
-	// variable. You need to call this *before* you use the addr variable
-	// otherwise it will always contain the default value of ":4000". If any errors are
-	// encountered during parsing the application will be terminated.
+func main() {
+	addr := flag.String("addr", ":4000", "HTTP network address")
 	flag.Parse()
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", home)
-	mux.HandleFunc("/snippet/view", snippetView)
-	mux.HandleFunc("/snippet/create", snippetCreate)
+	infoLogger := log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime)
+	errorLogger := log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 
-	fileServer := http.FileServer(http.Dir("./ui/static/"))
-	mux.Handle("/static/", http.StripPrefix("/static", neuter(fileServer)))
+	app := &application{
+		errorLog: errorLogger,
+		infoLog:  infoLogger,
+	}
 
-	// The value returned from the flag.String() function is a pointer to the flag
-	// value, not the value itself. So we need to dereference the pointer (i.e.
-	// prefix it with the * symbol) before using it. Note that we're using the
-	// log.Printf() function to interpolate the address with the log message.
+	srv := &http.Server{
+		Addr:     *addr,
+		ErrorLog: errorLogger,
+		// Call the new app.routes() method to get the servemux containing our routes.
+		Handler: app.routes(),
+	}
 
-	log.Printf("Starting server on %s", *addr)
-	err := http.ListenAndServe(*addr, mux)
-	log.Fatal(err)
+	infoLogger.Printf("Starting server on %s", *addr)
+	err := srv.ListenAndServe()
+	errorLogger.Fatal(err)
 }
