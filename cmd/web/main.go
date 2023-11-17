@@ -5,16 +5,18 @@ import (
 	"database/sql"
 	"flag"
 	_ "github.com/go-sql-driver/mysql"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
 )
 
 type application struct {
-	errorLog *log.Logger
-	infoLog  *log.Logger
-	db       *sql.DB
-	snippets *models.SnippetModel
+	errorLog  *log.Logger
+	infoLog   *log.Logger
+	db        *sql.DB
+	snippets  *models.SnippetModel
+	templates map[string]*template.Template
 }
 
 func main() {
@@ -32,12 +34,18 @@ func main() {
 	}
 	infoLogger.Println("Db connection established")
 
+	templatesCache, err := newTemplateCache()
+	if err != nil {
+		errorLogger.Fatal(err)
+	}
+
 	app := &application{
 		errorLog: errorLogger,
 		infoLog:  infoLogger,
 		snippets: &models.SnippetModel{
 			DB: db,
 		},
+		templates: templatesCache,
 	}
 
 	srv := &http.Server{

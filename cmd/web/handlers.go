@@ -4,46 +4,23 @@ import (
 	"artchernov.ru/internal/models"
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
-
-	files := []string{
-		"./ui/html/base.html",
-		"./ui/html/partials/nav.html",
-		"./ui/html/pages/home.html",
-	}
-
-	ts, err := template.ParseFiles(files...)
-	if err != nil {
-		app.errorLog.Println(err.Error())
-		app.serverError(w, err)
-		return
-	}
-
 	snippets, err := app.snippets.Latest()
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
 
-	data := &templateData{
-		Snippets: snippets,
-	}
-
-	err = ts.ExecuteTemplate(w, "base", data)
-	if err != nil {
-		app.errorLog.Println(err.Error())
-		app.serverError(w, err)
-	}
+	app.render(w, http.StatusOK,
+		"home.html",
+		&templateData{
+			Snippets: snippets,
+		})
 }
 
 func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +29,6 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w)
 		return
 	}
-
 	snippet, err := app.snippets.Get(id)
 	if err != nil {
 		if errors.Is(err, models.ErrNoRecord) {
@@ -63,31 +39,11 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := &templateData{
-		Snippet: snippet,
-	}
-
-	// Initialize a slice containing the paths to the view.tmpl file,
-	// plus the base layout and navigation partial that we made earlier.
-	files := []string{
-		"./ui/html/base.html",
-		"./ui/html/partials/nav.html",
-		"./ui/html/pages/view.html",
-	}
-
-	// Parse the template files...
-	ts, err := template.ParseFiles(files...)
-	if err != nil {
-		app.serverError(w, err)
-		return
-	}
-
-	// And then execute them. Notice how we are passing in the snippet
-	// data (a models.Snippet struct) as the final parameter?
-	err = ts.ExecuteTemplate(w, "base", data)
-	if err != nil {
-		app.serverError(w, err)
-	}
+	app.render(w, http.StatusOK,
+		"view.html",
+		&templateData{
+			Snippet: snippet,
+		})
 }
 
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
