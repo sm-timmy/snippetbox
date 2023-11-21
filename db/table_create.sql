@@ -6,6 +6,16 @@ CREATE TABLE snippets (
                           created DATETIME NOT NULL,
                           expires DATETIME NOT NULL
 );
-
--- Add an index on the created column.
+--
+-- -- Add an index on the created column.
 CREATE INDEX idx_snippets_created ON snippets(created);
+
+USE snippetbox;
+
+CREATE TABLE sessions (
+                          token CHAR(43) PRIMARY KEY,
+                          data BLOB NOT NULL,
+                          expiry TIMESTAMP(6) NOT NULL
+);
+
+CREATE INDEX sessions_expiry_idx ON sessions (expiry);

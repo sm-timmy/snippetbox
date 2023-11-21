@@ -4,21 +4,25 @@ import (
 	"artchernov.ru/internal/models"
 	"database/sql"
 	"flag"
+	"github.com/alexedwards/scs/mysqlstore"
+	"github.com/alexedwards/scs/v2"
 	"github.com/go-playground/form/v4"
 	_ "github.com/go-sql-driver/mysql"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 type application struct {
-	errorLog    *log.Logger
-	infoLog     *log.Logger
-	db          *sql.DB
-	snippets    *models.SnippetModel
-	templates   map[string]*template.Template
-	formDecoder *form.Decoder
+	errorLog       *log.Logger
+	infoLog        *log.Logger
+	db             *sql.DB
+	snippets       *models.SnippetModel
+	templates      map[string]*template.Template
+	formDecoder    *form.Decoder
+	sessionManager *scs.SessionManager
 }
 
 func main() {
@@ -43,14 +47,19 @@ func main() {
 
 	formDecoder := form.NewDecoder()
 
+	sessionManager := scs.New()
+	sessionManager.Store = mysqlstore.New(db)
+	sessionManager.Lifetime = 12 * time.Hour
+
 	app := &application{
 		errorLog: errorLogger,
 		infoLog:  infoLogger,
 		snippets: &models.SnippetModel{
 			DB: db,
 		},
-		templates:   templatesCache,
-		formDecoder: formDecoder,
+		templates:      templatesCache,
+		formDecoder:    formDecoder,
+		sessionManager: sessionManager,
 	}
 
 	srv := &http.Server{
