@@ -2,6 +2,7 @@ package main
 
 import (
 	"artchernov.ru/internal/models"
+	"crypto/tls"
 	"database/sql"
 	"flag"
 	"github.com/alexedwards/scs/mysqlstore"
@@ -62,10 +63,27 @@ func main() {
 		sessionManager: sessionManager,
 	}
 
+	tlsConfig := &tls.Config{
+		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+		MinVersion:       tls.VersionTLS12,
+		//CipherSuites: []uint16{
+		//	tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		//	tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		//	tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+		//	tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+		//	tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		//	tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		//},
+	}
+
 	srv := &http.Server{
-		Addr:     *addr,
-		ErrorLog: errorLogger,
-		Handler:  app.routes(),
+		Addr:         *addr,
+		ErrorLog:     errorLogger,
+		Handler:      app.routes(),
+		TLSConfig:    tlsConfig,
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  3 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
 
 	infoLogger.Printf("Starting server on %s", *addr)
