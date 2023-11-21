@@ -4,6 +4,7 @@ import (
 	"artchernov.ru/internal/models"
 	"database/sql"
 	"flag"
+	"github.com/go-playground/form/v4"
 	_ "github.com/go-sql-driver/mysql"
 	"html/template"
 	"log"
@@ -12,11 +13,12 @@ import (
 )
 
 type application struct {
-	errorLog  *log.Logger
-	infoLog   *log.Logger
-	db        *sql.DB
-	snippets  *models.SnippetModel
-	templates map[string]*template.Template
+	errorLog    *log.Logger
+	infoLog     *log.Logger
+	db          *sql.DB
+	snippets    *models.SnippetModel
+	templates   map[string]*template.Template
+	formDecoder *form.Decoder
 }
 
 func main() {
@@ -39,13 +41,16 @@ func main() {
 		errorLogger.Fatal(err)
 	}
 
+	formDecoder := form.NewDecoder()
+
 	app := &application{
 		errorLog: errorLogger,
 		infoLog:  infoLogger,
 		snippets: &models.SnippetModel{
 			DB: db,
 		},
-		templates: templatesCache,
+		templates:   templatesCache,
+		formDecoder: formDecoder,
 	}
 
 	srv := &http.Server{
